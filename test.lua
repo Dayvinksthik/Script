@@ -1,4 +1,10 @@
--- Blox Fruits 
+-- Blox Fruits Ultimate All-in-One Script (Fixed & Optimized)
+-- Fixes: Questlines infinite yield, DMGDEBUG flood, NPC nil errors, safe arithmetic.
+-- Features: Auto Farm (Level/Nearest/Bone), 0‑2800 sea progression, Attack modes,
+-- Auto Stats, Auto Haki, Teleports, Raids, Auto Buy, Spin Fruit, Auto Bone,
+-- Auto Mastery, Legendary Swords (Yama, Tushita, CDK), Sea Events,
+-- Boss Server Hop, Auto Close Dialogs, NoClip, InfJump, ESP, AntiAFK, Smart Goal System.
+-- palofsc
 
 -- // Services
 local Players = game:GetService("Players")
@@ -11,10 +17,35 @@ local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
+
+-- // Safely load player data with timeout
+local Data = nil
+local Level = nil
+local Questlines = nil
+
+local function safeWaitForChild(parent, childName, timeout)
+    local start = tick()
+    local child = parent:FindFirstChild(childName)
+    while not child and tick() - start < timeout do
+        task.wait(0.5)
+        child = parent:FindFirstChild(childName)
+    end
+    return child
+end
+
+-- Wait up to 15 seconds for Data, Level, and Questlines (unlikely to fail)
+Data = safeWaitForChild(LocalPlayer, "Data", 15)
+if Data then
+    Level = safeWaitForChild(Data, "Level", 5)
+end
+Questlines = safeWaitForChild(LocalPlayer, "Questlines", 10)
+
+-- Fallbacks
+if not Data then warn("Data not found, some features disabled") end
+if not Level then warn("Level not found, auto farm may not work") end
+if not Questlines then warn("Questlines not found, auto quest disabled") end
+
 local Mouse = LocalPlayer:GetMouse()
-local Data = LocalPlayer:WaitForChild("Data")
-local Level = Data:WaitForChild("Level")
-local Questlines = LocalPlayer:WaitForChild("Questlines")
 local Enemies = Workspace:WaitForChild("Enemies")
 
 -- // Settings
@@ -49,11 +80,11 @@ local settings = {
     AutoPirateRaid = false,
     AutoCloseDialog = true,
     HopDelay = 60,
-    LastHopTick = 0, -- initialized as number
+    LastHopTick = 0,
     GoalActive = false,
     CurrentGoal = "",
     GoalStep = 0,
-    GoalTarget = 0, -- number
+    GoalTarget = 0,
     GoalItem = ""
 }
 
@@ -137,7 +168,7 @@ end
 
 -- // Attack functions with throttle to prevent DMGDEBUG spam
 local lastRemoteAttackTick = 0
-local REMOTE_ATTACK_COOLDOWN = 0.1 -- seconds between remote firings for Speed mode
+local REMOTE_ATTACK_COOLDOWN = 0.1
 
 local attackFuncs = {
     Normal = function()
@@ -160,27 +191,23 @@ local attackFuncs = {
         end
     end,
     Speed = function()
-        local now = os.time() -- use os.clock for high precision? better tick()
         local currentTick = tick()
         if currentTick - lastRemoteAttackTick < REMOTE_ATTACK_COOLDOWN then
-            return -- throttle, skip this cycle to avoid spam
+            return
         end
         lastRemoteAttackTick = currentTick
-
         local remotes = ReplicatedStorage:FindFirstChild("Remotes")
         local weaponRemote = remotes and (remotes:FindFirstChild("Weapon") or remotes:FindFirstChild("Attack"))
         if weaponRemote then
-            -- fire once per throttle cycle, not multiple times
             pcall(function() weaponRemote:FireServer("Swing") end)
         else
-            -- fallback: single mouse click
             VirtualInputManager:SendMouseButtonEvent(Mouse.X, Mouse.Y, 0, true, game, 0)
             VirtualInputManager:SendMouseButtonEvent(Mouse.X, Mouse.Y, 0, false, game, 0)
         end
     end
 }
 
--- // Nearest enemy finder (safe)
+-- // Nearest enemy finder
 local function getNearestEnemy(range, namePattern)
     local hrp = getHRP()
     if not hrp then return nil end
@@ -247,15 +274,15 @@ local quests = {
     }
 }
 
--- // Auto Farm Loop (safe teleport, NPC prompts wrapped)
+-- // Auto Farm Loop
 local function autoFarmLoop()
     while settings.AutoFarm do
         local hrp = getHRP()
         if not hrp then task.wait(0.2) continue end
         local currentSea = sea
-        local lv = Level.Value
+        local lv = Level and Level.Value or 0
 
-        -- Sea transition (with safe teleport)
+        -- Sea transition
         if currentSea == 1 and lv >= 700 then
             safeTeleport(CFrame.new(-2722.77, 73.37, -5459.68))
             task.wait(0.5)
@@ -282,18 +309,21 @@ local function autoFarmLoop()
             for i = #list, 1, -1 do if lv >= list[i][1] then target = list[i]; break end end
             if not target then task.wait(1) continue end
             local questName = target[3]
-            local questObj = Questlines:FindFirstChild(questName)
-            if questObj and questObj.Current.Value == 0 and settings.AutoQuest then
-                safeTeleport(target[4])
-                task.wait(0.3)
-                for _, npc in ipairs(Workspace.NPCs:GetChildren()) do
-                    if npc:FindFirstChild("Questline") and npc.Questline.Value == questName then
-                        local prompt = npc:FindFirstChild("ProximityPrompt")
-                        if prompt then pcall(function() prompt:InputHoldBegin() end) end
-                        break
+            -- Only attempt quest if Questlines exists and auto quest is on
+            if Questlines and settings.AutoQuest then
+                local questObj = Questlines:FindFirstChild(questName)
+                if questObj and questObj.Current.Value == 0 then
+                    safeTeleport(target[4])
+                    task.wait(0.3)
+                    for _, npc in ipairs(Workspace.NPCs:GetChildren()) do
+                        if npc:FindFirstChild("Questline") and npc.Questline.Value == questName then
+                            local prompt = npc:FindFirstChild("ProximityPrompt")
+                            if prompt then pcall(function() prompt:InputHoldBegin() end) end
+                            break
+                        end
                     end
+                    task.wait(0.3)
                 end
-                task.wait(0.3)
             end
             local enemy = getNearestEnemy(250)
             if enemy then
@@ -375,7 +405,7 @@ local function autoBuyLoop(category)
     while autoBuyStates[category] do
         task.wait(2)
         local hrp = getHRP() if not hrp then continue end
-        local money = Data:FindFirstChild("Beli") and Data.Beli.Value or 0
+        local money = Data and Data:FindFirstChild("Beli") and Data.Beli.Value or 0
         for _, item in ipairs(shopData[category]) do
             if not hasItem(item[1]) and money >= item[2] then
                 safeTeleport(item[4])
@@ -391,7 +421,7 @@ end
 local function spinLoop()
     while autoBuyStates.Spin do
         task.wait(2)
-        local money = Data:FindFirstChild("Beli") and Data.Beli.Value or 0
+        local money = Data and Data:FindFirstChild("Beli") and Data.Beli.Value or 0
         if money >= 25000 then
             local dealer = Workspace:FindFirstChild("Blox Fruit Dealer") or Workspace:FindFirstChild("Blox Fruit Dealer Cousin")
             if dealer then
@@ -446,7 +476,7 @@ coroutine.wrap(function()
     end
 end)()
 
--- // Legendary Swords (Yama, Tushita, CDK) with safe interactions
+-- // Legendary Swords (Yama, Tushita, CDK)
 local yamaRunning, tushitaRunning, cdkRunning = false, false, false
 
 coroutine.wrap(function()
@@ -692,7 +722,7 @@ end)()
 local goalDefinitions = {
     ["Reach Max Level"] = {
         { task="Leveling to 2800", setup=function() settings.AutoFarm=true; settings.FarmMethod="Level"; settings.AutoQuest=true end,
-          condition=function() return Level.Value >= 2800 end, teardown=function() settings.AutoFarm=false end }
+          condition=function() return Level and Level.Value >= 2800 end, teardown=function() settings.AutoFarm=false end }
     },
     ["Obtain Specific Sword"] = {
         { task="Purchasing sword", setup=function() settings.AutoBuySwords=true; autoBuyStates.Swords=true; autoBuyLoop("Swords") end,
@@ -704,17 +734,17 @@ local goalDefinitions = {
     },
     ["Farm Beli"] = {
         { task="Farming Beli", setup=function() settings.AutoFarm=true; settings.FarmMethod="Nearest" end,
-          condition=function() return (Data:FindFirstChild("Beli") and Data.Beli.Value >= settings.GoalTarget) end,
+          condition=function() return Data and Data:FindFirstChild("Beli") and Data.Beli.Value >= settings.GoalTarget end,
           teardown=function() settings.AutoFarm=false end }
     },
     ["Farm Bones"] = {
         { task="Farming Bones", setup=function() settings.AutoFarm=true; settings.FarmMethod="Auto Bone" end,
-          condition=function() return (Data:FindFirstChild("Bones") and Data.Bones.Value >= settings.GoalTarget) end,
+          condition=function() return Data and Data:FindFirstChild("Bones") and Data.Bones.Value >= settings.GoalTarget end,
           teardown=function() settings.AutoFarm=false end }
     },
     ["Farm Fragments"] = {
         { task="Farming Fragments", setup=function() settings.AutoRaid=true end,
-          condition=function() return (Data:FindFirstChild("Fragments") and Data.Fragments.Value >= settings.GoalTarget) end,
+          condition=function() return Data and Data:FindFirstChild("Fragments") and Data.Fragments.Value >= settings.GoalTarget end,
           teardown=function() settings.AutoRaid=false end }
     },
     ["Max Selected Mastery"] = {
@@ -787,7 +817,7 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 
 local Window = Fluent:CreateWindow({
     Title = "Blox Fruits Ultimate Hub",
-    SubTitle = "All-in-One | Fixed DMG",
+    SubTitle = "All-in-One | Fixed",
     TabWidth = 160,
     Size = UDim2.fromOffset(620, 500),
     Acrylic = false,
@@ -905,4 +935,4 @@ SaveManager:IgnoreThemeSettings(); SaveManager:SetIgnoreIndexes({})
 InterfaceManager:SetFolder("BFUltimateHub") SaveManager:SetFolder("BFUltimateHub/configs")
 SaveManager:BuildConfigSection(Tabs.Misc) InterfaceManager:BuildInterfaceSection(Tabs.Misc)
 Window:SelectTab(1)
-Fluent:Notify({Title="Loaded",Content="Fixed script: no DMGDEBUG flood, safe NPC handling."})
+Fluent:Notify({Title="Loaded",Content="Fixed script ready – no infinite yield, no DMG flood."})
