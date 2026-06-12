@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -693,10 +694,13 @@ local function goalTick()
 end
 task.spawn(function() while true do goalTick() task.wait(1) end end)
 
--- // ================== FLUENT UI (NO FALLBACK) ==================
-local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Fluent.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Addons/InterfaceManager.lua"))()
+-- // ================== FLUENT UI (FIXED VERSION) ==================
+-- Load the library using the correct, updated syntax
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+-- (Optional) Load addons if you need them
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 local Window = Fluent:CreateWindow({
     Title = "Blox Fruits Ultimate Hub",
