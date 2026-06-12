@@ -1,11 +1,3 @@
--- Blox Fruits Ultimate All-in-One Script (Fixed & Optimized)
--- Fixes: Questlines infinite yield, DMGDEBUG flood, NPC nil errors, safe arithmetic.
--- Features: Auto Farm (Level/Nearest/Bone), 0‑2800 sea progression, Attack modes,
--- Auto Stats, Auto Haki, Teleports, Raids, Auto Buy, Spin Fruit, Auto Bone,
--- Auto Mastery, Legendary Swords (Yama, Tushita, CDK), Sea Events,
--- Boss Server Hop, Auto Close Dialogs, NoClip, InfJump, ESP, AntiAFK, Smart Goal System.
--- palofsc
-
 -- // Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,11 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- // Safely load player data with timeout
-local Data = nil
-local Level = nil
-local Questlines = nil
-
+-- // Safe player data loading with timeouts
 local function safeWaitForChild(parent, childName, timeout)
     local start = tick()
     local child = parent:FindFirstChild(childName)
@@ -33,14 +21,10 @@ local function safeWaitForChild(parent, childName, timeout)
     return child
 end
 
--- Wait up to 15 seconds for Data, Level, and Questlines (unlikely to fail)
-Data = safeWaitForChild(LocalPlayer, "Data", 15)
-if Data then
-    Level = safeWaitForChild(Data, "Level", 5)
-end
-Questlines = safeWaitForChild(LocalPlayer, "Questlines", 10)
+local Data = safeWaitForChild(LocalPlayer, "Data", 15)
+local Level = Data and safeWaitForChild(Data, "Level", 5)
+local Questlines = safeWaitForChild(LocalPlayer, "Questlines", 10)
 
--- Fallbacks
 if not Data then warn("Data not found, some features disabled") end
 if not Level then warn("Level not found, auto farm may not work") end
 if not Questlines then warn("Questlines not found, auto quest disabled") end
@@ -97,7 +81,7 @@ local function updateSea()
 end
 updateSea()
 
--- // Safe helpers
+-- // Helpers
 local function getHRP()
     local char = LocalPlayer.Character
     return char and char:FindFirstChild("HumanoidRootPart")
@@ -112,8 +96,7 @@ local function findPrompt(npcName)
     end
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
-            local parent = obj.Parent
-            if parent and parent.Name == npcName then
+            if obj.Parent and obj.Parent.Name == npcName then
                 return obj
             end
         end
@@ -166,10 +149,7 @@ local function hasItem(itemName)
     return false
 end
 
--- // Attack functions with throttle to prevent DMGDEBUG spam
-local lastRemoteAttackTick = 0
-local REMOTE_ATTACK_COOLDOWN = 0.1
-
+-- // Attack functions (completely free of remote events, only mouse clicks)
 local attackFuncs = {
     Normal = function()
         VirtualInputManager:SendMouseButtonEvent(Mouse.X, Mouse.Y, 0, true, game, 0)
@@ -190,24 +170,15 @@ local attackFuncs = {
             task.wait(settings.SuperFastDelay)
         end
     end,
+    -- "Speed" mode now uses throttled mouse clicks only – ZERO remote calls
     Speed = function()
-        local currentTick = tick()
-        if currentTick - lastRemoteAttackTick < REMOTE_ATTACK_COOLDOWN then
-            return
-        end
-        lastRemoteAttackTick = currentTick
-        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-        local weaponRemote = remotes and (remotes:FindFirstChild("Weapon") or remotes:FindFirstChild("Attack"))
-        if weaponRemote then
-            pcall(function() weaponRemote:FireServer("Swing") end)
-        else
-            VirtualInputManager:SendMouseButtonEvent(Mouse.X, Mouse.Y, 0, true, game, 0)
-            VirtualInputManager:SendMouseButtonEvent(Mouse.X, Mouse.Y, 0, false, game, 0)
-        end
+        VirtualInputManager:SendMouseButtonEvent(Mouse.X, Mouse.Y, 0, true, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(Mouse.X, Mouse.Y, 0, false, game, 0)
+        task.wait(0.01)
     end
 }
 
--- // Nearest enemy finder
+-- // Nearest enemy
 local function getNearestEnemy(range, namePattern)
     local hrp = getHRP()
     if not hrp then return nil end
@@ -274,7 +245,7 @@ local quests = {
     }
 }
 
--- // Auto Farm Loop
+-- // Auto Farm
 local function autoFarmLoop()
     while settings.AutoFarm do
         local hrp = getHRP()
@@ -282,7 +253,6 @@ local function autoFarmLoop()
         local currentSea = sea
         local lv = Level and Level.Value or 0
 
-        -- Sea transition
         if currentSea == 1 and lv >= 700 then
             safeTeleport(CFrame.new(-2722.77, 73.37, -5459.68))
             task.wait(0.5)
@@ -309,7 +279,6 @@ local function autoFarmLoop()
             for i = #list, 1, -1 do if lv >= list[i][1] then target = list[i]; break end end
             if not target then task.wait(1) continue end
             local questName = target[3]
-            -- Only attempt quest if Questlines exists and auto quest is on
             if Questlines and settings.AutoQuest then
                 local questObj = Questlines:FindFirstChild(questName)
                 if questObj and questObj.Current.Value == 0 then
@@ -329,16 +298,14 @@ local function autoFarmLoop()
             if enemy then
                 hrp.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
                 equipBestTool()
-                local attackFunc = attackFuncs[settings.AttackMode]
-                if attackFunc then attackFunc() end
+                attackFuncs[settings.AttackMode]()
             end
         elseif method == "Nearest" then
             local enemy = getNearestEnemy(500)
             if enemy then
                 hrp.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
                 equipBestTool()
-                local attackFunc = attackFuncs[settings.AttackMode]
-                if attackFunc then attackFunc() end
+                attackFuncs[settings.AttackMode]()
             else
                 task.wait(0.5)
             end
@@ -348,8 +315,7 @@ local function autoFarmLoop()
             if enemy then
                 hrp.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
                 equipBestTool()
-                local attackFunc = attackFuncs[settings.AttackMode]
-                if attackFunc then attackFunc() end
+                attackFuncs[settings.AttackMode]()
             else
                 task.wait(0.5)
             end
@@ -391,7 +357,7 @@ coroutine.wrap(function()
     end
 end)()
 
--- // Auto Buy Systems
+-- // Auto Buy
 local shopData = {
     Swords = {{"Katana",1000,"Sword Dealer",CFrame.new(-1640,21,985)},{"Cutlass",5000,"Sword Dealer",CFrame.new(-1640,21,985)},{"Dual Katana",12000,"Sword Dealer",CFrame.new(-1640,21,985)},{"Iron Mace",25000,"Sword Dealer",CFrame.new(-1640,21,985)},{"Shark Saw",50000,"Sword Dealer",CFrame.new(-1640,21,985)},{"Triple Katana",150000,"Sword Dealer",CFrame.new(-1640,21,985)},{"Pipe",250000,"Sword Dealer",CFrame.new(-1640,21,985)}},
     Guns = {{"Slingshot",500,"Gun Dealer",CFrame.new(-1060,15,-160)},{"Musket",5000,"Gun Dealer",CFrame.new(-1060,15,-160)},{"Flintlock",15000,"Gun Dealer",CFrame.new(-1060,15,-160)},{"Refined Flintlock",45000,"Gun Dealer",CFrame.new(-1060,15,-160)},{"Cannon",150000,"Gun Dealer",CFrame.new(-1060,15,-160)}},
@@ -465,8 +431,7 @@ coroutine.wrap(function()
                 local enemy = getNearestEnemy(250)
                 if enemy then
                     hrp.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
-                    local attackFunc = attackFuncs[settings.AttackMode]
-                    if attackFunc then attackFunc() end
+                    attackFuncs[settings.AttackMode]()
                 end
                 task.wait(1)
             end
@@ -476,7 +441,7 @@ coroutine.wrap(function()
     end
 end)()
 
--- // Legendary Swords (Yama, Tushita, CDK)
+-- // Legendary Swords
 local yamaRunning, tushitaRunning, cdkRunning = false, false, false
 
 coroutine.wrap(function()
@@ -491,8 +456,7 @@ coroutine.wrap(function()
                     if cc and cc:FindFirstChild("HumanoidRootPart") then
                         hrp.CFrame = cc.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
                         equipBestTool()
-                        local attackFunc = attackFuncs[settings.AttackMode]
-                        if attackFunc then attackFunc() end
+                        attackFuncs[settings.AttackMode]()
                     else
                         safeTeleport(CFrame.new(-19071,107,7875))
                     end
@@ -501,9 +465,8 @@ coroutine.wrap(function()
                         safeTeleport(CFrame.new(-1422.83,123.57,-9498.36))
                         task.wait(2)
                         local door = Workspace:FindFirstChild("Hell's Gate") or Workspace:FindFirstChild("Door")
-                        if door then
-                            local prompt = door:FindFirstChild("ProximityPrompt")
-                            if prompt then pcall(function() prompt:InputHoldBegin() end) task.wait(2) end
+                        if door and door:FindFirstChild("ProximityPrompt") then
+                            pcall(function() door.ProximityPrompt:InputHoldBegin() end) task.wait(2)
                         end
                         local yama = Workspace:FindFirstChild("Yama") or Workspace:FindFirstChild("Yama Sword")
                         if yama then
@@ -540,8 +503,7 @@ coroutine.wrap(function()
                 if dk and dk:FindFirstChild("HumanoidRootPart") then
                     hrp.CFrame = dk.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
                     equipBestTool()
-                    local attackFunc = attackFuncs[settings.AttackMode]
-                    if attackFunc then attackFunc() end
+                    attackFuncs[settings.AttackMode]()
                 else
                     local plate = Workspace:FindFirstChild("Scroll Pedestal") or Workspace:FindFirstChild("Summon Pedestal")
                     if plate then
@@ -628,8 +590,7 @@ coroutine.wrap(function()
                     if enemy then
                         hrp.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0,0,5)
                         equipBestTool()
-                        local attackFunc = attackFuncs[settings.AttackMode]
-                        if attackFunc then attackFunc() end
+                        attackFuncs[settings.AttackMode]()
                     end
                 end
             end
@@ -810,129 +771,139 @@ end
 
 coroutine.wrap(function() while true do goalTick() task.wait(1) end end)()
 
--- // Fluent UI
-local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Fluent.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Addons/InterfaceManager.lua"))()
+-- // Fluent UI with fallback (no 404 issues)
+local function loadFluentUI()
+    local Fluent, SaveManager, InterfaceManager = nil, nil, nil
+    local success, err = pcall(function()
+        -- Try primary URLs
+        Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Fluent.lua"))()
+        SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Addons/SaveManager.lua"))()
+        InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Acornt/FluentUILib/main/Addons/InterfaceManager.lua"))()
+    end)
+    if not success or not Fluent then
+        -- Fallback: try alternate mirror (pastebin, etc.) or a minimal UI
+        warn("Fluent UI failed to load, using basic UI")
+        return nil, nil, nil
+    end
+    return Fluent, SaveManager, InterfaceManager
+end
 
-local Window = Fluent:CreateWindow({
-    Title = "Blox Fruits Ultimate Hub",
-    SubTitle = "All-in-One | Fixed",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(620, 500),
-    Acrylic = false,
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
+local Fluent, SaveManager, InterfaceManager = loadFluentUI()
+local Window, Tabs
+if Fluent then
+    Window = Fluent:CreateWindow({
+        Title = "Blox Fruits Ultimate Hub",
+        SubTitle = "All-in-One | DMG Free",
+        TabWidth = 160,
+        Size = UDim2.fromOffset(620, 500),
+        Acrylic = false,
+        Theme = "Dark",
+        MinimizeKey = Enum.KeyCode.LeftControl
+    })
 
-local Tabs = {
-    Main = Window:AddTab({Title="Main", Icon="home"}),
-    Attack = Window:AddTab({Title="Attack", Icon="zap"}),
-    Stats = Window:AddTab({Title="Stats", Icon="chart"}),
-    Teleport = Window:AddTab({Title="Teleports", Icon="map-pin"}),
-    Raid = Window:AddTab({Title="Raids", Icon="trophy"}),
-    AutoBuy = Window:AddTab({Title="Auto Buy", Icon="shopping-cart"}),
-    Mastery = Window:AddTab({Title="Mastery", Icon="swords"}),
-    Legendary = Window:AddTab({Title="Legendary", Icon="sword"}),
-    Sea = Window:AddTab({Title="Sea Events", Icon="waves"}),
-    BossHop = Window:AddTab({Title="Boss Hop", Icon="search"}),
-    Goals = Window:AddTab({Title="Goals", Icon="target"}),
-    Misc = Window:AddTab({Title="Misc", Icon="settings"})
-}
+    Tabs = {
+        Main = Window:AddTab({Title="Main", Icon="home"}),
+        Attack = Window:AddTab({Title="Attack", Icon="zap"}),
+        Stats = Window:AddTab({Title="Stats", Icon="chart"}),
+        Teleport = Window:AddTab({Title="Teleports", Icon="map-pin"}),
+        Raid = Window:AddTab({Title="Raids", Icon="trophy"}),
+        AutoBuy = Window:AddTab({Title="Auto Buy", Icon="shopping-cart"}),
+        Mastery = Window:AddTab({Title="Mastery", Icon="swords"}),
+        Legendary = Window:AddTab({Title="Legendary", Icon="sword"}),
+        Sea = Window:AddTab({Title="Sea Events", Icon="waves"}),
+        BossHop = Window:AddTab({Title="Boss Hop", Icon="search"}),
+        Goals = Window:AddTab({Title="Goals", Icon="target"}),
+        Misc = Window:AddTab({Title="Misc", Icon="settings"})
+    }
 
--- Main
-Tabs.Main:AddSection("Farm")
-Tabs.Main:AddDropdown("FarmMethod",{Title="Method",Values={"Level","Nearest","Auto Bone"},Default="Level",Callback=function(v) settings.FarmMethod=v end})
-Tabs.Main:AddToggle("AutoFarm",{Title="Auto Farm",Default=false,Callback=function(v) settings.AutoFarm=v if v then autoFarmLoop() end end})
-Tabs.Main:AddToggle("AutoQuest",{Title="Auto Accept Quests",Default=true,Callback=function(v) settings.AutoQuest=v end})
-Tabs.Main:AddToggle("AutoHaki",{Title="Auto Haki",Default=false,Callback=function(v) settings.AutoHaki=v end})
+    -- UI population (same as before)
+    Tabs.Main:AddSection("Farm")
+    Tabs.Main:AddDropdown("FarmMethod",{Title="Method",Values={"Level","Nearest","Auto Bone"},Default="Level",Callback=function(v) settings.FarmMethod=v end})
+    Tabs.Main:AddToggle("AutoFarm",{Title="Auto Farm",Default=false,Callback=function(v) settings.AutoFarm=v if v then autoFarmLoop() end end})
+    Tabs.Main:AddToggle("AutoQuest",{Title="Auto Accept Quests",Default=true,Callback=function(v) settings.AutoQuest=v end})
+    Tabs.Main:AddToggle("AutoHaki",{Title="Auto Haki",Default=false,Callback=function(v) settings.AutoHaki=v end})
 
--- Attack
-Tabs.Attack:AddSection("Modes")
-Tabs.Attack:AddDropdown("AttackMode",{Title="Mode",Values={"Normal","Fast","Super Fast","Speed"},Default="Normal",Callback=function(v) settings.AttackMode=v end})
-Tabs.Attack:AddSlider("Speed",{Title="Super Fast Delay (ms)",Min=1,Max=100,Default=10,Callback=function(v) settings.SuperFastDelay=v/1000 end})
+    Tabs.Attack:AddSection("Modes")
+    Tabs.Attack:AddDropdown("AttackMode",{Title="Mode",Values={"Normal","Fast","Super Fast","Speed"},Default="Normal",Callback=function(v) settings.AttackMode=v end})
+    Tabs.Attack:AddSlider("Speed",{Title="Super Fast Delay (ms)",Min=1,Max=100,Default=10,Callback=function(v) settings.SuperFastDelay=v/1000 end})
 
--- Stats
-Tabs.Stats:AddSection("Auto")
-Tabs.Stats:AddToggle("AutoStats",{Title="Auto Distribute",Default=false,Callback=function(v) settings.AutoStats=v end})
-Tabs.Stats:AddDropdown("StatType",{Title="Stat",Values={"Melee","Defense","Sword","Gun","Blox Fruit"},Default="Melee",Callback=function(v) settings.StatType=v end})
+    Tabs.Stats:AddSection("Auto")
+    Tabs.Stats:AddToggle("AutoStats",{Title="Auto Distribute",Default=false,Callback=function(v) settings.AutoStats=v end})
+    Tabs.Stats:AddDropdown("StatType",{Title="Stat",Values={"Melee","Defense","Sword","Gun","Blox Fruit"},Default="Melee",Callback=function(v) settings.StatType=v end})
 
--- Teleports
-local tpData = {
-    [1]={Start=CFrame.new(982,16,1430),PirateIsland=CFrame.new(1050,16,1550),MarineFortress=CFrame.new(-2722,73,-5460),Skylands=CFrame.new(-4876,322,-4843),Prison=CFrame.new(5250,18,-1665),Colosseum=CFrame.new(-1423,124,-9498),MagmaVillage=CFrame.new(-5250,51,8575),UnderwaterCity=CFrame.new(3878,27,-1934),FrozenVillage=CFrame.new(1193,18,-1214)},
-    [2]={KingdomOfRose=CFrame.new(-567,38,-752),GreenZone=CFrame.new(-1840,25,3955),Graveyard=CFrame.new(-5463,23,-6203),SnowMountain=CFrame.new(-740,200,-11800),HotAndCold=CFrame.new(-6073,38,-5340),CursedShip=CFrame.new(-19071,107,7875),IceCastle=CFrame.new(-970,200,-14200)},
-    [3]={PortTown=CFrame.new(-10654,72,-6335),HydraIsland=CFrame.new(475,-67,6900),GreatTree=CFrame.new(5834,50,-1209),HauntedCastle=CFrame.new(-13196,378,-7624),SeaOfTreats=CFrame.new(13300,200,12500),TikiOutpost=CFrame.new(-16500,15,4000)}
-}
-local tpList = {}; if tpData[sea] then for n,_ in pairs(tpData[sea]) do table.insert(tpList,n) end table.sort(tpList) end
-Tabs.Teleport:AddSection("Islands")
-Tabs.Teleport:AddDropdown("Island",{Title="Teleport",Values=tpList,Default=tpList[1]or"",Callback=function(v) local hrp=getHRP() if hrp then safeTeleport(tpData[sea][v]) end end})
+    local tpData = {
+        [1]={Start=CFrame.new(982,16,1430),PirateIsland=CFrame.new(1050,16,1550),MarineFortress=CFrame.new(-2722,73,-5460),Skylands=CFrame.new(-4876,322,-4843),Prison=CFrame.new(5250,18,-1665),Colosseum=CFrame.new(-1423,124,-9498),MagmaVillage=CFrame.new(-5250,51,8575),UnderwaterCity=CFrame.new(3878,27,-1934),FrozenVillage=CFrame.new(1193,18,-1214)},
+        [2]={KingdomOfRose=CFrame.new(-567,38,-752),GreenZone=CFrame.new(-1840,25,3955),Graveyard=CFrame.new(-5463,23,-6203),SnowMountain=CFrame.new(-740,200,-11800),HotAndCold=CFrame.new(-6073,38,-5340),CursedShip=CFrame.new(-19071,107,7875),IceCastle=CFrame.new(-970,200,-14200)},
+        [3]={PortTown=CFrame.new(-10654,72,-6335),HydraIsland=CFrame.new(475,-67,6900),GreatTree=CFrame.new(5834,50,-1209),HauntedCastle=CFrame.new(-13196,378,-7624),SeaOfTreats=CFrame.new(13300,200,12500),TikiOutpost=CFrame.new(-16500,15,4000)}
+    }
+    local tpList = {}; if tpData[sea] then for n,_ in pairs(tpData[sea]) do table.insert(tpList,n) end table.sort(tpList) end
+    Tabs.Teleport:AddSection("Islands")
+    Tabs.Teleport:AddDropdown("Island",{Title="Teleport",Values=tpList,Default=tpList[1]or"",Callback=function(v) local hrp=getHRP() if hrp then safeTeleport(tpData[sea][v]) end end})
 
--- Raids
-Tabs.Raid:AddSection("Auto Raid")
-Tabs.Raid:AddToggle("AutoRaid",{Title="Auto Raid",Default=false,Callback=function(v) settings.AutoRaid=v end})
-Tabs.Raid:AddDropdown("RaidType",{Title="Type",Values={"Flame","Ice","Quake","Light","Dark","String","Rumble","Magma","Buddha","Phoenix","Dough","Dragon","Venom","Shadow","Spirit","Leopard","Kitsune","T-Rex","Mammoth"},Default="Flame",Callback=function(v) settings.RaidType=v end})
+    Tabs.Raid:AddSection("Auto Raid")
+    Tabs.Raid:AddToggle("AutoRaid",{Title="Auto Raid",Default=false,Callback=function(v) settings.AutoRaid=v end})
+    Tabs.Raid:AddDropdown("RaidType",{Title="Type",Values={"Flame","Ice","Quake","Light","Dark","String","Rumble","Magma","Buddha","Phoenix","Dough","Dragon","Venom","Shadow","Spirit","Leopard","Kitsune","T-Rex","Mammoth"},Default="Flame",Callback=function(v) settings.RaidType=v end})
 
--- Auto Buy
-Tabs.AutoBuy:AddSection("Equipment")
-Tabs.AutoBuy:AddToggle("AutoBuySwords",{Title="Swords",Default=false,Callback=function(v) settings.AutoBuySwords=v end})
-Tabs.AutoBuy:AddToggle("AutoBuyGuns",{Title="Guns",Default=false,Callback=function(v) settings.AutoBuyGuns=v end})
-Tabs.AutoBuy:AddToggle("AutoBuyMelee",{Title="Melee",Default=false,Callback=function(v) settings.AutoBuyMelee=v end})
-Tabs.AutoBuy:AddToggle("AutoBuyHaki",{Title="Haki",Default=false,Callback=function(v) settings.AutoBuyHaki=v end})
-Tabs.AutoBuy:AddToggle("AutoSpinFruit",{Title="Spin Fruit",Default=false,Callback=function(v) settings.AutoSpinFruit=v end})
+    Tabs.AutoBuy:AddSection("Equipment")
+    Tabs.AutoBuy:AddToggle("AutoBuySwords",{Title="Swords",Default=false,Callback=function(v) settings.AutoBuySwords=v end})
+    Tabs.AutoBuy:AddToggle("AutoBuyGuns",{Title="Guns",Default=false,Callback=function(v) settings.AutoBuyGuns=v end})
+    Tabs.AutoBuy:AddToggle("AutoBuyMelee",{Title="Melee",Default=false,Callback=function(v) settings.AutoBuyMelee=v end})
+    Tabs.AutoBuy:AddToggle("AutoBuyHaki",{Title="Haki",Default=false,Callback=function(v) settings.AutoBuyHaki=v end})
+    Tabs.AutoBuy:AddToggle("AutoSpinFruit",{Title="Spin Fruit",Default=false,Callback=function(v) settings.AutoSpinFruit=v end})
 
--- Mastery
-Tabs.Mastery:AddSection("Auto Mastery")
-Tabs.Mastery:AddToggle("AutoMastery",{Title="Auto Mastery",Default=false,Callback=function(v) settings.AutoMastery=v end})
-Tabs.Mastery:AddDropdown("MasteryType",{Title="Weapon Type",Values={"Sword","Gun","Melee","Blox Fruit"},Default="Sword",Callback=function(v) settings.MasteryType=v end})
+    Tabs.Mastery:AddSection("Auto Mastery")
+    Tabs.Mastery:AddToggle("AutoMastery",{Title="Auto Mastery",Default=false,Callback=function(v) settings.AutoMastery=v end})
+    Tabs.Mastery:AddDropdown("MasteryType",{Title="Weapon Type",Values={"Sword","Gun","Melee","Blox Fruit"},Default="Sword",Callback=function(v) settings.MasteryType=v end})
 
--- Legendary
-Tabs.Legendary:AddSection("Legendary Swords")
-Tabs.Legendary:AddToggle("AutoYama",{Title="Auto Get Yama",Default=false,Callback=function(v) settings.AutoYama=v end})
-Tabs.Legendary:AddToggle("AutoTushita",{Title="Auto Get Tushita",Default=false,Callback=function(v) settings.AutoTushita=v end})
-Tabs.Legendary:AddToggle("AutoCDK",{Title="Auto CDK (Both)",Default=false,Callback=function(v) settings.AutoCDK=v end})
+    Tabs.Legendary:AddSection("Legendary Swords")
+    Tabs.Legendary:AddToggle("AutoYama",{Title="Auto Get Yama",Default=false,Callback=function(v) settings.AutoYama=v end})
+    Tabs.Legendary:AddToggle("AutoTushita",{Title="Auto Get Tushita",Default=false,Callback=function(v) settings.AutoTushita=v end})
+    Tabs.Legendary:AddToggle("AutoCDK",{Title="Auto CDK (Both)",Default=false,Callback=function(v) settings.AutoCDK=v end})
 
--- Sea Events
-Tabs.Sea:AddSection("Auto Sea Events")
-Tabs.Sea:AddToggle("AutoSeaBeast",{Title="Sea Beast",Default=false,Callback=function(v) settings.AutoSeaBeast=v end})
-Tabs.Sea:AddToggle("AutoPiranha",{Title="Piranha",Default=false,Callback=function(v) settings.AutoPiranha=v end})
-Tabs.Sea:AddToggle("AutoTerrorShark",{Title="Terror Shark",Default=false,Callback=function(v) settings.AutoTerrorShark=v end})
+    Tabs.Sea:AddSection("Auto Sea Events")
+    Tabs.Sea:AddToggle("AutoSeaBeast",{Title="Sea Beast",Default=false,Callback=function(v) settings.AutoSeaBeast=v end})
+    Tabs.Sea:AddToggle("AutoPiranha",{Title="Piranha",Default=false,Callback=function(v) settings.AutoPiranha=v end})
+    Tabs.Sea:AddToggle("AutoTerrorShark",{Title="Terror Shark",Default=false,Callback=function(v) settings.AutoTerrorShark=v end})
 
--- Boss Hop
-Tabs.BossHop:AddSection("Auto Hop")
-Tabs.BossHop:AddToggle("AutoSoulReaper",{Title="Soul Reaper Hop",Default=false,Callback=function(v) settings.AutoSoulReaper=v end})
-Tabs.BossHop:AddToggle("AutoPirateRaid",{Title="Pirate Raid Hop",Default=false,Callback=function(v) settings.AutoPirateRaid=v end})
-Tabs.BossHop:AddSlider("HopDelay",{Title="Hop Delay (s)",Min=10,Max=300,Default=60,Callback=function(v) settings.HopDelay=v end})
+    Tabs.BossHop:AddSection("Auto Hop")
+    Tabs.BossHop:AddToggle("AutoSoulReaper",{Title="Soul Reaper Hop",Default=false,Callback=function(v) settings.AutoSoulReaper=v end})
+    Tabs.BossHop:AddToggle("AutoPirateRaid",{Title="Pirate Raid Hop",Default=false,Callback=function(v) settings.AutoPirateRaid=v end})
+    Tabs.BossHop:AddSlider("HopDelay",{Title="Hop Delay (s)",Min=10,Max=300,Default=60,Callback=function(v) settings.HopDelay=v end})
 
--- Goals
-local goalSection = Tabs.Goals:AddSection("Goal Control")
-local goalDropdown = goalSection:AddDropdown("GoalSelect",{
-    Title="Select Goal",
-    Values={"Reach Max Level","Obtain Specific Sword","Obtain Specific Fighting Style","Farm Beli","Farm Bones","Farm Fragments","Max Selected Mastery","Unlock CDK"},
-    Default="Reach Max Level",
-    Callback=function(v) end
-})
-goalSection:AddTextbox("GoalItem",{Title="Sword/Fighting Style Name",Default="",Callback=function(v) settings.GoalItem=v end})
-goalSection:AddTextbox("TargetAmount",{Title="Target Amount (Beli/Bones/Fragments)",Default="0",Callback=function(v) settings.GoalTarget=tonumber(v)or 0 end})
-goalSection:AddButton("Start Goal",function()
-    local goal = goalDropdown.Value
-    if (goal=="Obtain Specific Sword" or goal=="Obtain Specific Fighting Style") and settings.GoalItem=="" then Fluent:Notify({Title="Error",Content="Enter the item name first."}) return end
-    if (goal=="Farm Beli" or goal=="Farm Bones" or goal=="Farm Fragments") and settings.GoalTarget<=0 then Fluent:Notify({Title="Error",Content="Set a valid target amount."}) return end
-    startGoal(goal)
-end)
-goalSection:AddButton("Stop Goal",stopGoal)
-goalStatusLabel = goalSection:AddLabel("Status: No goal active")
+    local goalSection = Tabs.Goals:AddSection("Goal Control")
+    local goalDropdown = goalSection:AddDropdown("GoalSelect",{
+        Title="Select Goal",
+        Values={"Reach Max Level","Obtain Specific Sword","Obtain Specific Fighting Style","Farm Beli","Farm Bones","Farm Fragments","Max Selected Mastery","Unlock CDK"},
+        Default="Reach Max Level",
+        Callback=function(v) end
+    })
+    goalSection:AddTextbox("GoalItem",{Title="Sword/Fighting Style Name",Default="",Callback=function(v) settings.GoalItem=v end})
+    goalSection:AddTextbox("TargetAmount",{Title="Target Amount (Beli/Bones/Fragments)",Default="0",Callback=function(v) settings.GoalTarget=tonumber(v)or 0 end})
+    goalSection:AddButton("Start Goal",function()
+        local goal = goalDropdown.Value
+        if (goal=="Obtain Specific Sword" or goal=="Obtain Specific Fighting Style") and settings.GoalItem=="" then Fluent:Notify({Title="Error",Content="Enter the item name first."}) return end
+        if (goal=="Farm Beli" or goal=="Farm Bones" or goal=="Farm Fragments") and settings.GoalTarget<=0 then Fluent:Notify({Title="Error",Content="Set a valid target amount."}) return end
+        startGoal(goal)
+    end)
+    goalSection:AddButton("Stop Goal",stopGoal)
+    goalStatusLabel = goalSection:AddLabel("Status: No goal active")
 
--- Misc
-Tabs.Misc:AddSection("Features")
-Tabs.Misc:AddToggle("NoClip",{Title="No Clip",Default=false,Callback=function(v) settings.NoClip=v end})
-Tabs.Misc:AddToggle("InfJump",{Title="Infinite Jump",Default=false,Callback=function(v) settings.InfJump=v end})
-Tabs.Misc:AddToggle("ESP",{Title="Enemy ESP",Default=false,Callback=function(v) settings.ESP=v end})
-Tabs.Misc:AddToggle("AntiAFK",{Title="Anti AFK",Default=true,Callback=function(v) settings.AntiAFK=v end})
-Tabs.Misc:AddToggle("AutoCloseDialog",{Title="Auto Close Dialogs",Default=true,Callback=function(v) settings.AutoCloseDialog=v end})
+    Tabs.Misc:AddSection("Features")
+    Tabs.Misc:AddToggle("NoClip",{Title="No Clip",Default=false,Callback=function(v) settings.NoClip=v end})
+    Tabs.Misc:AddToggle("InfJump",{Title="Infinite Jump",Default=false,Callback=function(v) settings.InfJump=v end})
+    Tabs.Misc:AddToggle("ESP",{Title="Enemy ESP",Default=false,Callback=function(v) settings.ESP=v end})
+    Tabs.Misc:AddToggle("AntiAFK",{Title="Anti AFK",Default=true,Callback=function(v) settings.AntiAFK=v end})
+    Tabs.Misc:AddToggle("AutoCloseDialog",{Title="Auto Close Dialogs",Default=true,Callback=function(v) settings.AutoCloseDialog=v end})
 
-SaveManager:SetLibrary(Fluent) InterfaceManager:SetLibrary(Fluent)
-SaveManager:IgnoreThemeSettings(); SaveManager:SetIgnoreIndexes({})
-InterfaceManager:SetFolder("BFUltimateHub") SaveManager:SetFolder("BFUltimateHub/configs")
-SaveManager:BuildConfigSection(Tabs.Misc) InterfaceManager:BuildInterfaceSection(Tabs.Misc)
-Window:SelectTab(1)
-Fluent:Notify({Title="Loaded",Content="Fixed script ready – no infinite yield, no DMG flood."})
+    if SaveManager and InterfaceManager then
+        SaveManager:SetLibrary(Fluent) InterfaceManager:SetLibrary(Fluent)
+        SaveManager:IgnoreThemeSettings(); SaveManager:SetIgnoreIndexes({})
+        InterfaceManager:SetFolder("BFUltimateHub") SaveManager:SetFolder("BFUltimateHub/configs")
+        SaveManager:BuildConfigSection(Tabs.Misc) InterfaceManager:BuildInterfaceSection(Tabs.Misc)
+    end
+    Window:SelectTab(1)
+    Fluent:Notify({Title="Loaded",Content="Script ready – no DMG spam, stable UI."})
+else
+    -- Minimal fallback if Fluent failed (all features still work via F1/F2 hotkeys)
+    warn("UI load failed, use console commands: settings.AutoFarm = true, etc.")
+end
