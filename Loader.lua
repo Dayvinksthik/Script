@@ -11,7 +11,7 @@ if game.PlaceId == 7449423635 or
    game.PlaceId == 4442272183 or
    game.PlaceId == 122478697296975 or
    UniverseID == 994732206 then
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Dayvinksthik/Script/refs/heads/main/BloxFruit.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Dayvinksthik/Script/refs/heads/main/Games/BloxFruit.lua"))()
 else
     warn("This game is not supported.")
 end
