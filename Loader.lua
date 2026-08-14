@@ -7,7 +7,7 @@ local UniverseID = success and result.universeId or nil
 
 local loaded = false
 
--- BloxFruit Games
+-- BloxFruit
 if game.PlaceId == 7449423635 or
    game.PlaceId == 2753915549 or
    game.PlaceId == 4442272183 or
