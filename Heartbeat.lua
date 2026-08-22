@@ -1,4 +1,7 @@
--- KoalaHub Heartbeat
+-- Nexora Heartbeat
+
+-- Graphics + Sound optimization
+
 pcall(function()
     settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
 end)
@@ -33,7 +36,7 @@ local Players           = game:GetService("Players")
 local TeleportService   = game:GetService("TeleportService")
 local player            = Players.LocalPlayer
 
-local HEARTBEAT_FILE     = "koala_heartbeat.txt"
+local HEARTBEAT_FILE     = "nexora_heartbeat.txt"
 local HEARTBEAT_INTERVAL = 5
 
 local function writeHeartbeat(status)
