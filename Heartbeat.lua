@@ -24,45 +24,86 @@ end)
 
 local runService = game:GetService("RunService")
 
-runService.RenderStepped:Connect(function(deltaTime)
-    if math.floor(1 / deltaTime) > 30 then
-        runService.RenderStepped:Wait()
+task.spawn(function()
+    while true do
+        task.wait(1 / 30)
+        -- yield to keep frame rate at or below 30
     end
 end)
 
 -- Heartbeat
 
-local Players           = game:GetService("Players")
-local TeleportService   = game:GetService("TeleportService")
-local player            = Players.LocalPlayer
+local Players         = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local player          = Players.LocalPlayer
 
 local HEARTBEAT_FILE     = "nexora_heartbeat.txt"
 local HEARTBEAT_INTERVAL = 5
 
-local function writeHeartbeat(status)
-    local username = player and player.Name or "unknown"
-    pcall(writefile, HEARTBEAT_FILE,
-        tostring(os.time()) .. "|" .. (status or "ingame") .. "|" .. username)
+-- Detect if we are actually inside a game (not home screen / loading)
+local function isInGame()
+    local success, result = pcall(function()
+        return player.Character ~= nil
+            and player.Character.Parent ~= nil
+            and game.PlaceId ~= 0
+    end)
+    return success and result
 end
 
--- Write on load
-writeHeartbeat("ingame")
+local function getPlaceId()
+    local success, id = pcall(function() return tostring(game.PlaceId) end)
+    return (success and id) or "0"
+end
 
--- Keep writing every 5s
+local function writeHeartbeat(status)
+    local username = player and player.Name or "unknown"
+    local placeId  = getPlaceId()
+    -- Format: timestamp|status|username|placeId
+    pcall(writefile, HEARTBEAT_FILE,
+        tostring(os.time()) .. "|" .. (status or "ingame") .. "|" .. username .. "|" .. placeId)
+end
+
+-- Kicked detection
+
+pcall(function()
+    player.Kicked:Connect(function()
+        writeHeartbeat("kicked")
+    end)
+end)
+
+-- Teleport detection
+
+pcall(function()
+    player.OnTeleport:Connect(function(state)
+        if state == Enum.TeleportState.InProgress then
+            writeHeartbeat("teleporting")
+        elseif state == Enum.TeleportState.Failed then
+            writeHeartbeat("teleport_failed")
+        end
+    end)
+end)
+
+pcall(function()
+    TeleportService.LocalPlayerArrivedFromTeleport:Connect(function()
+        writeHeartbeat("ingame")
+    end)
+end)
+
+-- Main heartbeat loop
+
+-- Write on load
+local function getStatus()
+    if isInGame() then
+        return "ingame"
+    end
+    return "loading"
+end
+
+writeHeartbeat(getStatus())
+
 task.spawn(function()
     while true do
         task.wait(HEARTBEAT_INTERVAL)
-        writeHeartbeat("ingame")
+        writeHeartbeat(getStatus())
     end
-end)
-
--- Write on teleport
-player.OnTeleport:Connect(function(state)
-    if state == Enum.TeleportState.InProgress then
-        writeHeartbeat("teleporting")
-    end
-end)
-
-TeleportService.LocalPlayerArrivedFromTeleport:Connect(function()
-    writeHeartbeat("ingame")
 end)
