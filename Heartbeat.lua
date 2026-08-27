@@ -22,12 +22,9 @@ end)
 
 -- FPS cap at 30
 
-local runService = game:GetService("RunService")
-
 task.spawn(function()
     while true do
         task.wait(1 / 30)
-        -- yield to keep frame rate at or below 30
     end
 end)
 
@@ -37,10 +34,18 @@ local Players         = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local player          = Players.LocalPlayer
 
-local HEARTBEAT_FILE     = "nexora_heartbeat.txt"
+-- Create Nexora folder in workspace
+local FOLDER_NAME    = "Nexora"
+local HEARTBEAT_NAME = FOLDER_NAME .. "/heartbeat.txt"
 local HEARTBEAT_INTERVAL = 5
 
--- Detect if we are actually inside a game (not home screen / loading)
+-- Make sure the Nexora folder exists
+pcall(function()
+    if not isfolder(FOLDER_NAME) then
+        makefolder(FOLDER_NAME)
+    end
+end)
+
 local function isInGame()
     local success, result = pcall(function()
         return player.Character ~= nil
@@ -58,8 +63,13 @@ end
 local function writeHeartbeat(status)
     local username = player and player.Name or "unknown"
     local placeId  = getPlaceId()
-    -- Format: timestamp|status|username|placeId
-    pcall(writefile, HEARTBEAT_FILE,
+    -- Ensure folder still exists before writing
+    pcall(function()
+        if not isfolder(FOLDER_NAME) then
+            makefolder(FOLDER_NAME)
+        end
+    end)
+    pcall(writefile, HEARTBEAT_NAME,
         tostring(os.time()) .. "|" .. (status or "ingame") .. "|" .. username .. "|" .. placeId)
 end
 
@@ -91,7 +101,6 @@ end)
 
 -- Main heartbeat loop
 
--- Write on load
 local function getStatus()
     if isInGame() then
         return "ingame"
