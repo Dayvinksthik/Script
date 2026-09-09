@@ -1,6 +1,6 @@
 -- Nexora Heartbeat
 
--- Graphics + Sound optimization
+-- Graphics
 
 pcall(function()
     settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
@@ -34,12 +34,11 @@ local Players         = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local player          = Players.LocalPlayer
 
--- Create Nexora folder in workspace
-local FOLDER_NAME    = "Nexora"
-local HEARTBEAT_NAME = FOLDER_NAME .. "/heartbeat.txt"
+local FOLDER_NAME        = "Nexora"
+local HEARTBEAT_NAME     = FOLDER_NAME .. "/heartbeat.txt"
 local HEARTBEAT_INTERVAL = 5
 
--- Make sure the Nexora folder exists
+-- Create Nexora folder if it doesn't exist
 pcall(function()
     if not isfolder(FOLDER_NAME) then
         makefolder(FOLDER_NAME)
@@ -63,12 +62,14 @@ end
 local function writeHeartbeat(status)
     local username = player and player.Name or "unknown"
     local placeId  = getPlaceId()
-    -- Ensure folder still exists before writing
+
+    -- Re-check folder exists before every write
     pcall(function()
         if not isfolder(FOLDER_NAME) then
             makefolder(FOLDER_NAME)
         end
     end)
+
     pcall(writefile, HEARTBEAT_NAME,
         tostring(os.time()) .. "|" .. (status or "ingame") .. "|" .. username .. "|" .. placeId)
 end
@@ -108,8 +109,10 @@ local function getStatus()
     return "loading"
 end
 
+-- Write on load
 writeHeartbeat(getStatus())
 
+-- Keep writing every 5 seconds
 task.spawn(function()
     while true do
         task.wait(HEARTBEAT_INTERVAL)
