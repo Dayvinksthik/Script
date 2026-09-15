@@ -1,4 +1,4 @@
---[[ JOSHBNS CRACK KEY SYSTEM & SCRIPT HUB --]]
+--[[ JOSHBNS CRACK SCRIPT HUB --]]
 
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -95,7 +95,7 @@ local SelectContainer = Instance.new("ScrollingFrame")
 SelectContainer.Size = UDim2.new(1, -24, 1, -56)
 SelectContainer.Position = UDim2.new(0, 12, 0, 44)
 SelectContainer.BackgroundTransparency = 1
-SelectContainer.CanvasSize = UDim2.new(0, 0, 0, 160)
+SelectContainer.CanvasSize = UDim2.new(0, 0, 0, 240)
 SelectContainer.ScrollBarThickness = 3
 SelectContainer.ZIndex = 2
 SelectContainer.Parent = GameSelectFrame
@@ -190,6 +190,49 @@ CardDesc2.TextSize = 10
 CardDesc2.TextXAlignment = Enum.TextXAlignment.Left
 CardDesc2.ZIndex = 2
 CardDesc2.Parent = BloxFruitCard
+
+-- Card 3: Blade Ball
+local BladeBallCard = Instance.new("TextButton")
+BladeBallCard.Size = UDim2.new(1, 0, 0, 70)
+BladeBallCard.BackgroundColor3 = Color3.fromRGB(20, 28, 40)
+BladeBallCard.TextColor3 = Color3.fromRGB(255, 255, 255)
+BladeBallCard.Text = ""
+BladeBallCard.AutoButtonColor = false
+BladeBallCard.ZIndex = 2
+BladeBallCard.Parent = SelectContainer
+
+local CardCorner3 = Instance.new("UICorner")
+CardCorner3.CornerRadius = UDim.new(0, 6)
+CardCorner3.Parent = BladeBallCard
+
+local CardStroke3 = Instance.new("UIStroke")
+CardStroke3.Color = Color3.fromRGB(60, 140, 240)
+CardStroke3.Thickness = 1.2
+CardStroke3.Parent = BladeBallCard
+
+local CardTitle3 = Instance.new("TextLabel")
+CardTitle3.Size = UDim2.new(1, -20, 0, 24)
+CardTitle3.Position = UDim2.new(0, 10, 0, 10)
+CardTitle3.BackgroundTransparency = 1
+CardTitle3.TextColor3 = Color3.fromRGB(255, 255, 255)
+CardTitle3.Text = "BLADE BALL"
+CardTitle3.Font = Enum.Font.FredokaOne
+CardTitle3.TextSize = 14
+CardTitle3.TextXAlignment = Enum.TextXAlignment.Left
+CardTitle3.ZIndex = 2
+CardTitle3.Parent = BladeBallCard
+
+local CardDesc3 = Instance.new("TextLabel")
+CardDesc3.Size = UDim2.new(1, -20, 0, 20)
+CardDesc3.Position = UDim2.new(0, 10, 0, 36)
+CardDesc3.BackgroundTransparency = 1
+CardDesc3.TextColor3 = Color3.fromRGB(160, 180, 200)
+CardDesc3.Text = "Access Dryx Hub, Altheris, and Rise loader scripts."
+CardDesc3.Font = Enum.Font.GothamMedium
+CardDesc3.TextSize = 10
+CardDesc3.TextXAlignment = Enum.TextXAlignment.Left
+CardDesc3.ZIndex = 2
+CardDesc3.Parent = BladeBallCard
 
 -- ==========================================
 -- MAIN HUBS SETUP
@@ -370,6 +413,10 @@ local BloxFruitContainer = Instance.new("Folder")
 BloxFruitContainer.Name = "BloxFruitContainer"
 BloxFruitContainer.Parent = ContentContainer
 
+local BladeBallContainer = Instance.new("Folder")
+BladeBallContainer.Name = "BladeBallContainer"
+BladeBallContainer.Parent = ContentContainer
+
 local function clearSidebarAndPages()
     Sidebar.Visible = true
     ContentContainer.Size = UDim2.new(1, -140, 1, -32)
@@ -383,6 +430,9 @@ local function clearSidebarAndPages()
         child:Destroy()
     end
     for _, child in pairs(BloxFruitContainer:GetChildren()) do
+        child:Destroy()
+    end
+    for _, child in pairs(BladeBallContainer:GetChildren()) do
         child:Destroy()
     end
 end
@@ -959,6 +1009,88 @@ local function setupBloxFruitHub()
     end)
 end
 
+-- Blade Ball setup
+local function setupBladeBallHub()
+    clearSidebarAndPages()
+    TitleText.Text = "JOSHBNS CRACK BLADE BALL | PREMIUM"
+    Sidebar.Visible = false
+    ContentContainer.Size = UDim2.new(1, 0, 1, -32)
+    ContentContainer.Position = UDim2.new(0, 0, 0, 32)
+
+    local SinglePage = Instance.new("ScrollingFrame")
+    SinglePage.Size = UDim2.new(1, 0, 1, 0)
+    SinglePage.BackgroundTransparency = 1
+    SinglePage.BorderSizePixel = 0
+    SinglePage.CanvasSize = UDim2.new(0, 0, 0, 0)
+    SinglePage.ScrollBarThickness = 4
+    SinglePage.Visible = true
+    SinglePage.ZIndex = 2
+    SinglePage.Parent = BladeBallContainer
+
+    local Layout = Instance.new("UIListLayout")
+    Layout.SortOrder = Enum.SortOrder.LayoutOrder
+    Layout.Padding = UDim.new(0, 6)
+    Layout.Parent = SinglePage
+
+    local Padding = Instance.new("UIPadding")
+    Padding.PaddingTop = UDim.new(0, 10)
+    Padding.PaddingLeft = UDim.new(0, 10)
+    Padding.PaddingRight = UDim.new(0, 10)
+    Padding.Parent = SinglePage
+
+    Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        SinglePage.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 25)
+    end)
+
+    local function addButton(name, color, callback)
+        local Btn = Instance.new("TextButton")
+        Btn.Size = UDim2.new(1, 0, 0, 34)
+        Btn.BackgroundColor3 = color
+        Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Btn.Text = name
+        Btn.Font = Enum.Font.GothamBold
+        Btn.TextSize = 10
+        Btn.ZIndex = 2
+        Btn.Parent = SinglePage
+
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(0, 5)
+        Corner.Parent = Btn
+
+        Btn.MouseButton1Click:Connect(function()
+            local tweenInfo = TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            TweenService:Create(Btn, tweenInfo, {Size = UDim2.new(0.97, 0, 0, 30)}):Play()
+            task.wait(0.06)
+            TweenService:Create(Btn, tweenInfo, {Size = UDim2.new(1, 0, 0, 34)}):Play()
+            pcall(callback)
+        end)
+    end
+
+    addButton("DRYX HUB", Color3.fromRGB(45, 110, 210), function()
+        task.spawn(function()
+            pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/DryxALT/DryxHubBladeBall/refs/heads/main/Dryx%20(OBF).lua"))()
+            end)
+        end)
+    end)
+
+    addButton("ALTHERIS HUB", Color3.fromRGB(40, 100, 195), function()
+        task.spawn(function()
+            pcall(function()
+                loadstring(game:HttpGet("https://altheris.xyz/v4/loaders/acht/c2b9a1d8e3f4c760b5a19d3e8f4c2b7a.lua"))()
+            end)
+        end)
+    end)
+
+    addButton("RISE HUB", Color3.fromRGB(35, 95, 185), function()
+        task.spawn(function()
+            pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/joshhhie/rise/refs/heads/main/loader.lua"))()
+            end)
+        end)
+    end)
+end
+
 StealAnEggCard.MouseButton1Click:Connect(function()
     GameSelectFrame.Visible = false
     setupStealAnEggHub()
@@ -968,6 +1100,12 @@ end)
 BloxFruitCard.MouseButton1Click:Connect(function()
     GameSelectFrame.Visible = false
     setupBloxFruitHub()
+    MainFrame.Visible = true
+end)
+
+BladeBallCard.MouseButton1Click:Connect(function()
+    GameSelectFrame.Visible = false
+    setupBladeBallHub()
     MainFrame.Visible = true
 end)
 
