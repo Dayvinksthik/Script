@@ -54,11 +54,6 @@ return {
         FallAnim = 73456087568628,
         Animation1 = 71638717540676, Animation2 = 76158324638472, ClimbAnim = 135819058922984,
     },
-    ["Endless Aura Floating"] = {
-        WalkAnim = 131290152729043, RunAnim = 77610456891399, JumpAnim = 74451563346167,
-        FallAnim = 74203422263286, Swim = 110044773049875, SwimIdle = 110044773049875,
-        Animation1 = 75638427965557, Animation2 = 75638427965557, ClimbAnim = 116293937663140,
-    },
     ["Knight"] = {
         WalkAnim = 137483350289640, RunAnim = 129369392265057, JumpAnim = 95877284180448,
         FallAnim = 83488735206245, Swim = nil, SwimIdle = nil,
