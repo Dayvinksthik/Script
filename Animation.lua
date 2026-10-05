@@ -17,7 +17,7 @@ return {
     ["Endless Aura Floating"] = {
         WalkAnim = 131290152729043, RunAnim = 77610456891399, JumpAnim = 74451563346167,
         FallAnim = 74203422263286, Swim = 110044773049875, SwimIdle = 110044773049875,
-        Animation1 = 75638427965557, Animation2 = 106708015414624, ClimbAnim = 116293937663140,
+        Animation1 = 75638427965557, Animation2 = 75638427965557, ClimbAnim = 116293937663140,
     },
     ["Wicked Popular"] = {
         WalkAnim = 92072849924640, RunAnim = 72301599441680, JumpAnim = 104325245285198,
