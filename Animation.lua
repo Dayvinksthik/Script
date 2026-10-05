@@ -24,6 +24,11 @@ return {
         FallAnim = 77439438753019, Swim = nil, SwimIdle = nil,
         Animation1 = 88790607126350, Animation2 = 139975890421581, ClimbAnim = 104795666771451,
     },
+    ["Angel (Floating)"] = {
+        WalkAnim = 85536883688667, RunAnim = 72582265422296, JumpAnim = 134001381385845,
+        FallAnim = 89775297951588, Swim = nil, SwimIdle = nil,
+        Animation1 = 97116579805117, Animation2 = 90292885241272, ClimbAnim = 129249610186292,
+    },
     ["Bubbly"] = {
         WalkAnim = 10980888364, RunAnim = 10921057244, JumpAnim = 10921062673,
         FallAnim = 10921061530, Swim = 10921063569, SwimIdle = 10922582160,
